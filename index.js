@@ -19,40 +19,37 @@ app.get('/',(req,res)=>{
 const io = require('socket.io')(server);
 
 io.on("connect",(socket)=>{
-    console.log('New user connected');
 
-    socket.emit("auth","Check Is Device Is Online");
+    socket.emit("AUTH","");
 
-    socket.on("status", (data)=>{
-      console.log(data);
-    })
-
-    socket.on("JoinRoom",(room)=>{
-      console.log(room);
-      socket.join(room)
+    socket.on("JOINROOM",(room)=>{
+      if(room !== null && room !== undefined ){
+        console.log(room)
+        if(typeof room == "object" && room?.gId !== null && room?.gId !== undefined){
+          socket.join(room?.gId?.toString());
+        }
+        else if(typeof room == "string"){
+          socket.join(room?.toString());
+        }
+      }
     });
 
-    socket.on("message",({ roomName, deviceName, switchNo, switchStatus })=>{
-      console.log({ roomName, deviceName, switchNo, switchStatus })
-      let data = 0;
-      switch(switchNo){
-        case 1:
-          switchStatus === true ? data = 1 : data = 2;
-          break;
-        case 2:
-          switchStatus === true ? data = 3 : data = 4;
-          break;
-        case 3:
-          switchStatus === true ? data = 5 : data = 6;
-          break;
-        case 4:
-          switchStatus === true ? data = 7 : data = 8;
-          break;
-        default: 
-          data=0;
+    socket.on("GET_STATUS", (data)=>{
+      if(data?.Room_Name!==undefined && data?.Device_Name!==undefined){
+          socket.to(data?.Room_Name?.toString()).emit( data?.Device_Name+"_STATUS", "" );
       }
-      console.log(data);
-      socket.to(roomName).emit( deviceName, data );
+    })
+    
+    socket.on("STATUS", (data)=>{
+      if(data!==undefined){
+        if(data?.Room_Name!==undefined && data?.Device_Name!==undefined){
+            socket.to(data?.Room_Name?.toString()).emit("DEVICE_APP", data);
+        }
+      }
+    })
+
+    socket.on("ONCHANGE",({ roomName, deviceName, switchNo, switchStatus })=>{
+      socket.to(roomName?.toString()).emit( deviceName, { switchNo, switchStatus:!switchStatus } );
     });
 
 });
